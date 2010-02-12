@@ -14,7 +14,7 @@ Use
 An example configuration:
 
 	public $components = array(
-		'Yantra.StateMachine' => array(
+		'Yantra.Yantra' => array(
 			'auto' => true,
 			'default' => 'signing in',
 			'states' => array(
