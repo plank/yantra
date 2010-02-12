@@ -33,8 +33,8 @@ An example configuration:
 		)
 	);
 
-This defines a finite state machine with a total of 5 states ('signing in', 'billing',
-'paying', 'reviewing' and 'processing'). The values that correspond to these keys are the controller
+This defines a finite state machine with a total of 5 states (`signing in`, `billing`,
+`paying`, `reviewing` and `processing`). The values that correspond to these keys are the controller
 `actions` which correspond to this state. As a result of this formulation, a state may be comprised
 of more than one action.
 
@@ -49,12 +49,12 @@ Attempting to travel along a forbidden transition path will result in a redirect
 API
 ---
 
-YantraComponent::transition($from, $to): Transition from one state to another
-YantraComponent::transitions(): Get all defined transitions.
-YantraComponent::event($events): Manually trigger an event to cause a transition.
-YantraComponent::events(): Get all defined events.
-YantraComponent::state($state): Get the current state.
-YantraComponent::states(): Get all defined states.
+`YantraComponent::transition($from, $to)`: Transition from one state to another
+`YantraComponent::transitions()`: Get all defined transitions.
+`YantraComponent::event($events)`: Manually trigger an event to cause a transition.
+`YantraComponent::events()`: Get all defined events.
+`YantraComponent::state($state)`: Get the current state.
+`YantraComponent::states()`: Get all defined states.
 
 
 See the doc blocks for more specifics on the API, and the test cases for their intended usage.
