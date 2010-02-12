@@ -158,7 +158,6 @@ class YantraComponent extends Object {
 				return $this->state($to);
 			}
 		}
-
 		return false;
 	}
 
