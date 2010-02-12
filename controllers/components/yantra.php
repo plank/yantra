@@ -1,24 +1,33 @@
 <?php
+/**
+ * Yantra: A finite state machine with session persistence.
+ *
+ * @copyright     Copyright 2010, Plank Design (http://plankdesign.com)
+ * @license       http://opensource.org/licenses/mit-license.php The MIT License
+ */
 
 /**
- * A Component aimed at implementing the fundamentals
- * of a simple finite state machine.
+ * Yantra Component
  *
- * State tracking is done through sessions; perhaps one
- * day I'll implement a more generic state tracking mechanism
- * that could use a DB backend.
+ * This component allows you to specify sets of states, transitions and events that
+ * comprise the foundation of a finite state machine.
  *
- * @package wowwee
- * @subpackage wowwee.controllers.components
+ * What's a finite state machine, you ask? Well if you're using this component,
+ * you probably already have an idea of how they work. If not, then there is more
+ * information available at the `@see` tags to follow.
  *
+ * @see http://en.wikipedia.org/wiki/Finite-state_machine
+ * @see http://www.lamsonproject.org/docs/introduction_to_finite_state_machines.html
+ *
+ * For an example configuration and usecases, please see the included README.
  */
+
 class YantraComponent extends Object {
 
 	/**
 	 * Include components used by this component
 	 *
 	 * @var array
-	 * @access public
 	 */
 	public $components = array('Session');
 
@@ -26,7 +35,6 @@ class YantraComponent extends Object {
 	 * Storage namespace identifier.
 	 *
 	 * @var string
-	 * @access public
 	 */
 	public $namespace = 'StateMachine';
 
@@ -35,7 +43,6 @@ class YantraComponent extends Object {
 	 * first entry in $states is used as the default.
 	 *
 	 * @var array
-	 * @access public
 	 */
 	public $default = null;
 
@@ -47,7 +54,6 @@ class YantraComponent extends Object {
 	 * action does not exist, an error is produced.
 	 *
 	 * @var array
-	 * @access public
 	 */
 	public $states = array();
 
@@ -56,7 +62,6 @@ class YantraComponent extends Object {
 	 * the state machine.
 	 *
 	 * @var array
-	 * @access public
 	 */
 	public $transitions = array();
 
@@ -65,7 +70,6 @@ class YantraComponent extends Object {
 	 * automatically on successful event processing. Defaults to false.
 	 *
 	 * @var boolean True if auto-redirect should occur, false otherwise.
-	 * @access public;
 	 */
 	public $auto = false;
 
@@ -73,27 +77,22 @@ class YantraComponent extends Object {
 	 * Hold a reference to the controller which instantiated this component.
 	 *
 	 * @var object Controller object
-	 * @access public;
 	 */
 	public $controller = null;
 
 	/**
 	 * Component initialize method.
-	 * Is called before the controller beforeFilter method. All local
-	 * component initialization is done here.
+	 * Is called before the controller beforeFilter method. All local component
+	 * initialization is done here.
 	 *
-	 * @param  object $controller A reference to the controller which
-	 *                            initialized this component
-	 * @param  array  $settings   Optional component configurations
+	 * @param object $controller A reference to the controller which
+	 *        initialized this component
+	 * @param array $settings Optional component configurations
 	 * @return void
-	 * @access public
 	 */
 	public function initialize(&$controller, $settings = array()) {
 		$this->controller = $controller;
-
-		foreach ($settings as $setting => $value) {
-			$this->{$setting} = $value;
-		}
+		$this->_set($settings);
 	}
 
 	/**
@@ -101,17 +100,18 @@ class YantraComponent extends Object {
 	 * Is called after the controller's beforeFilter method,
 	 * but before the controller action is run.
 	 *
-	 * @param  object $controller A reference to the controller which
-	 *                            initialized this component
+	 * @param object $controller A reference to the controller which
+	 *        initialized this component
 	 * @return void
-	 * @access public
+	 * @todo Make flash mesages for erronous transitions configurable.
 	 */
 	public function startup(&$controller) {
 		$this->events = $this->events();
 
-	   if (empty($this->states)) {
-			   return trigger_error("You must specify at least one state for the Yantra state machine", E_USER_WARNING);
-	   }
+		if (empty($this->states)) {
+			$message = __('You must specify at least one state for the Yantra state machine', true);
+			return trigger_error($message, E_USER_WARNING);
+		}
 
 		if (!isset($this->default)) {
 			$states = array_keys($this->states());
@@ -121,13 +121,13 @@ class YantraComponent extends Object {
 		if (!$this->Session->check("{$this->namespace}.current_state")) {
 			$this->state = $this->default;
 		}
-
 		$currentAction = $this->controller->action;
 		$currentState = $this->state();
 
 		if (isset($currentAction)) {
-			  if (!$this->transition($currentState, $this->_actionToState($currentAction))) {
-				$this->Session->setFlash(__('You cannot access that page at this point in the process', true), 'flash/error', 'Yantra');
+			if (!$this->transition($currentState, $this->_actionToState($currentAction))) {
+				$message = 	__('You cannot access that page at this point in the process', true);
+				$this->Session->setFlash($message, 'flash/error', 'Yantra');
 
 				$states  = $this->states();
 				$url = $this->_toUrl($states[$currentState]);
@@ -139,18 +139,17 @@ class YantraComponent extends Object {
 
 
 	/**
-	 * Transitions from one state to the next
-	 * possible state in the allowed transition map.
+	 * Transitions from one state to the next possible state in the allowed transition map.
 	 *
-	 * @param  string  $from The start state
-	 * @param  string  $to   The end state
-	 * @return boolean       True on successful transition, false otherwise
-	 * @access public
+	 * @param string $from The start state
+	 * @param string $to The end state
+	 * @return boolean True on successful transition, false otherwise
 	 * @todo Perhaps move the logic for checking the current state to somewhere more appropriate.
 	 */
 	public function transition($from, $to) {
-		if ($from === $to) return true;
-
+		if ($from === $to) {
+			return true;
+		}
 		$transitions = $this->transitions();
 
 		if (isset($transitions[$from]) && (in_array($to, $transitions[$from]))) {
@@ -163,6 +162,11 @@ class YantraComponent extends Object {
 		return false;
 	}
 
+	/**
+	 * Obtain all defined transitions.
+	 *
+	 * @return array Transitions, indexed by their origin.
+	 */
 	public function transitions() {
 		$transitions = array();
 
@@ -171,7 +175,6 @@ class YantraComponent extends Object {
 				$transitions[$origin][] = $destination;
 			}
 		}
-
 		return $transitions;
 	}
 
@@ -179,16 +182,16 @@ class YantraComponent extends Object {
 	 * Trigger the event & corresponding transition
 	 *
 	 * @param string $event The event that is ocurring
-	 * @return mixed        If YantraComponent::$auto is true, a redirect is performed on
-	 *                      successful event transition. If $auto is false, a boolean
-	 *                      is returned indicating the success/failure of the event transition.
-	 * @access public
+	 * @return mixed If YantraComponent::$auto is true, a redirect is performed on
+	 *         successful event transition. If $auto is false, a boolean is returned
+	 *         indicating the success/failure of the event transition.
 	 */
 	public function event($event) {
 		$state = $this->state();
 
-		if (!isset($this->transitions[$event][$state])) return false;
-
+		if (!isset($this->transitions[$event][$state])) {
+			return false;
+		}
 		$to = $this->transitions[$event][$state];
 		$transition = $this->transition($state, $to);
 
@@ -196,10 +199,14 @@ class YantraComponent extends Object {
 			$url = $this->_toUrl($this->states[$to]);
 			$this->controller->redirect($url);
 		}
-
 		return $transition;
 	}
 
+	/**
+	 * Obtain all defined events.
+	 *
+	 * @return array Events.
+	 */
 	public function events() {
 		return array_keys($this->transitions);
 	}
@@ -208,11 +215,10 @@ class YantraComponent extends Object {
 	 * Returns the current state from the object responsible for
 	 * storage.
 	 *
-	 * @param  string $state If Set, the given $state will be saved.
-	 * @return string        An identifier representing the current state if $state is null,
-	 *                       or a boolean indicating the success or failure of saving
-	 *                       the state to the session otherwise.
-	 * @access public
+	 * @param string $state If Set, the given $state will be saved.
+	 * @return string An identifier representing the current state if $state is null,
+	 *         or a boolean indicating the success or failure of saving the state to
+	 *         the session otherwise.
 	 */
 	public function state($state = null) {
 		$path = "{$this->namespace}.current_state";
@@ -224,15 +230,13 @@ class YantraComponent extends Object {
 		if($this->Session->check($path)) {
 			return $this->Session->read($path);
 		}
-
 		return $this->default;
 	}
 
 	/**
-	 * Returns all possible states
+	 * Returns all possible states.
 	 *
 	 * @return array Array of all possible states
-	 * @access public
 	 */
 	public function states() {
 		return $this->states;
@@ -242,10 +246,9 @@ class YantraComponent extends Object {
 	 * A helpful recursively defined method to determine the state that
 	 * a corresponding action is contained in.
 	 *
-	 * @param string $action
-	 * @param array  $states
+	 * @param string $action The action to query.
+	 * @param array $states
 	 * @return mixed
-	 * @access public
 	 */
 	protected function _actionToState($action, $states = array()) {
 		if (empty($states)) {
@@ -258,19 +261,20 @@ class YantraComponent extends Object {
 				return $current_key;
 			}
 		}
-
 		return null;
 	}
 
 	/**
-	 * Converts a state to a controller action
+	 * Converts a state to a controller action.
 	 *
 	 * NOTE: a state may represent many controller actions, in which case
 	 * one of them will have to be the default. This function arbitrarily
 	 * chooses the first controller action as the default action.
 	 *
-	 * @param mixed $input
-	 * @return array
+	 * @param mixed $input Array or string based input.
+	 * @return array Modified URL.
+	 * @todo Refactor so that a 'default' state could be set at configuration time on
+	 *       a per-state basis.
 	 */
 	protected function _toUrl($input) {
 		$url = (is_array($input)) ? array('action' => current($input)) : array('action' => $input);
